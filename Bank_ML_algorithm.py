@@ -1,68 +1,89 @@
-
-import streamlit as st
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import LabelEncoder
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from sklearn import metrics
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
+import streamlit as st
 
-st.title("Bank Marketing Streamlit App")
+# Load the dataset
+bank_data = pd.read_csv("resources/bank-full.csv", sep=';', quotechar='"')
 
-# Load the data
-@st.cache
-def load_data():
-    bank_data = pd.read_csv("resources/bank-full.csv", sep=';', quotechar='"')
-    return bank_data
+# Create a sidebar for user options
+st.sidebar.header("Bank Dataset Analysis Options")
+show_data = st.sidebar.checkbox("Show Dataset")
+show_statistics = st.sidebar.checkbox("Show Dataset Statistics")
+show_missing = st.sidebar.checkbox("Show Missing Values")
+show_column_names = st.sidebar.checkbox("Show Column Names")
 
-def main():
-    bank_data = load_data()
-
-    st.header("Exploratory Data Analysis (EDA)")
+# Display the first and last few rows
+if show_data:
+    st.header("Bank Marketing Dataset")
+    st.subheader("First few rows of the dataset:")
     st.dataframe(bank_data.head())
+    st.subheader("Last few rows of the dataset:")
+    st.dataframe(bank_data.tail())
 
-    st.subheader("Data Summary")
+# Display dataset statistics and check for missing values
+if show_statistics:
+    st.subheader("Summary statistics of the dataset:")
     st.write(bank_data.describe())
 
-    st.subheader("Missing Values")
+if show_missing:
+    st.subheader("Missing values in the dataset:")
     st.write(bank_data.isnull().sum())
 
-    st.subheader("Column Names")
+# Display column names
+if show_column_names:
+    st.subheader("Column names:")
     st.write(bank_data.columns)
 
-    feature_cols = ['age', 'job', 'marital', 'education', 'default', 'balance', 'housing',
-                    'loan', 'contact', 'day', 'month', 'duration', 'campaign', 'pdays',
-                    'previous', 'poutcome']
+# Select features and target variable
+feature_cols = ['age', 'job', 'marital', 'education', 'default', 'balance', 'housing',
+                'loan', 'contact', 'day', 'month', 'duration', 'campaign', 'pdays',
+                'previous', 'poutcome']
+X = bank_data[feature_cols]
+y = bank_data['y']
 
-    X = bank_data[feature_cols]
+# Perform one-hot encoding
+X = pd.get_dummies(X, columns=['job', 'marital', 'education', 'default', 'housing', 'loan', 'contact', 'month', 'poutcome'])
 
-    y = bank_data['y']
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
 
-    X = pd.get_dummies(X, columns=['job', 'marital', 'education', 'default', 'housing', 'loan', 'contact', 'month', 'poutcome'])
+# Decision Tree Classifier
+bank_decision_tree = DecisionTreeClassifier(criterion="entropy")
+bank_decision_tree = bank_decision_tree.fit(X_train, y_train)
+y_pred = bank_decision_tree.predict(X_test)
+decision_tree_accuracy = metrics.accuracy_score(y_test, y_pred)
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+# K-Nearest Neighbors Classifier
+bank_data_k = KNeighborsClassifier(n_neighbors=5)
+bank_data_k.fit(X_train, y_train)
+y_pred_k = bank_data_k.predict(X_test)
+knn_accuracy = metrics.accuracy_score(y_test, y_pred_k)
 
-    st.header("Machine Learning Models")
+# Confusion Matrix for Decision Tree
+confusion_decision_tree = confusion_matrix(y_test, y_pred)
 
-    model_option = st.selectbox("Select a Model", ["Logistic Regression", "Decision Tree", "Random Forest"])
+# Streamlit app
+st.title("Bank Dataset Analysis")
 
-    if model_option == "Logistic Regression":
-        model = LogisticRegression()
-    elif model_option == "Decision Tree":
-        model = DecisionTreeClassifier(criterion="entropy")
-    elif model_option == "Random Forest":
-        model = RandomForestClassifier(n_estimators=100, random_state=42)
+st.write("### Decision Tree Classifier")
+st.write(f"Accuracy (Decision Tree): {decision_tree_accuracy:.4f}")
 
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
-    accuracy = metrics.accuracy_score(y_test, y_pred)
+st.write("### K-Nearest Neighbors Classifier")
+st.write(f"Accuracy (K-Nearest Neighbors): {knn_accuracy:.4f}")
 
-    st.subheader("Model Accuracy")
-    st.write(f"Accuracy: {accuracy:.2f}")
+st.write("### Confusion Matrix (Decision Tree)")
+st.dataframe(confusion_decision_tree)
 
-if __name__ == "__main__":
-    main()
+st.write("### Confusion Matrix Heatmap (Decision Tree)")
+plt.figure(figsize=(5, 4))
+sns.heatmap(confusion_decision_tree, annot=True, fmt="d", cmap="Blues")
+st.pyplot()
