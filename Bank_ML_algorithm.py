@@ -12,7 +12,7 @@ import seaborn as sns
 import streamlit as st
 
 # Load the dataset
-bank_data = pd.read_csv("resources/bank-full.csv", sep=';', quotechar='"')
+bank_data = pd.read_csv("Data/bank-full.csv", sep=';', quotechar='"')
 
 # Create a sidebar for user options
 st.sidebar.header("Bank Dataset Analysis Options")
